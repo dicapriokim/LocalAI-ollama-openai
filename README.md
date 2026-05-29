@@ -41,8 +41,8 @@ An optimized configuration and guide for deploying **LocalAI** with **Intel iGPU
 
 1. 저장소를 클론하고 디렉토리로 이동합니다:
    ```bash
-   git clone https://github.com/dicapriokim/LocalAI-miniPC.git localai
-   cd localai
+   git clone https://github.com/dicapriokim/LocalAI-miniPC.git
+   cd LocalAI-miniPC/localai
    ```
 2. Docker 컨테이너를 실행합니다:
    ```bash
@@ -120,8 +120,8 @@ Ensure the Intel UHD Graphics are passed through from the Proxmox Host (`root@pv
 
 1. Clone the repository and navigate to the directory:
    ```bash
-   git clone https://github.com/dicapriokim/LocalAI-miniPC.git localai
-   cd localai
+   git clone https://github.com/dicapriokim/LocalAI-miniPC.git
+   cd LocalAI-miniPC/localai
    ```
 2. Launch the LocalAI Docker container:
    ```bash
