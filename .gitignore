@@ -1,0 +1,6 @@
+# LocalAI GGUF Model Weight Files (Excluding large binary files from git)
+localai/models/*.gguf
+
+# Temp or config backup files if any
+*.log
+.env

@@ -1,0 +1,23 @@
+name: qwen-1.5b
+backend: llama-cpp
+context_size: 4096
+threads: 4
+gpu_layers: 15
+
+parameters:
+  model: qwen2.5-1.5b-instruct.gguf
+  temperature: 0.7
+  top_p: 0.9
+  top_k: 40
+  mmap: true
+  f16_kv: true
+  use_jinja: true
+  stop:
+    - "<|im_end|>"
+    - "<|im_start|>"
+    - "<|endoftext|>"
+
+template:
+  use_tokenizer_template: true
+
+

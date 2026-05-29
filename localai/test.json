@@ -1,0 +1,14 @@
+{
+  "model": "qwen-1.5b",
+  "messages": [
+    {
+      "role": "system",
+      "content": "너는 스마트홈 전문가야. 친절하고 간결하게 답변해줘."
+    },
+    {
+      "role": "user",
+      "content": "인텔 N95 미니 PC에서 너를 구동하는 데 성공했어! 축하 한마디 해줄래?"
+    }
+  ],
+  "temperature": 0.7
+}

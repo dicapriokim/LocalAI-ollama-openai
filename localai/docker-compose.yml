@@ -1,0 +1,28 @@
+services:
+  localai:
+    image: localai/localai:latest-gpu-vulkan
+    container_name: local-ai
+    privileged: true
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - DEBUG=true
+      - MODELS_PATH=/models
+      - THREADS=4
+      - LOCALAI_FORCE_META_BACKEND_CAPABILITY=vulkan
+    volumes:
+      - ./models:/models
+    devices:
+      - /dev/dri:/dev/dri
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/readyz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
