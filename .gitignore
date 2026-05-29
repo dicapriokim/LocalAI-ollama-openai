@@ -4,3 +4,5 @@ localai/models/*.gguf
 # Temp or config backup files if any
 *.log
 .env
+localai/test.json
+
