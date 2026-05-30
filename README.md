@@ -51,7 +51,13 @@ An optimized configuration and guide for deploying **LocalAI** with **Intel iGPU
 3. **모델 다운로드:** `./models` 폴더 아래로 GGUF 모델 가중치를 다운로드합니다:
    ```bash
    cd models
+   # Qwen-1.5b Text Model
    wget -O qwen2.5-1.5b-instruct.gguf https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf
+   # Qwen-3b Text Model (Required for HA_MCP)
+   wget -O qwen2.5-3b-instruct.gguf https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf
+   # Moondream2 Vision Model (Required for Matter QR)
+   wget -O moondream2-text-model-q4_0.gguf https://huggingface.co/moondream/moondream2-gguf/resolve/main/moondream2-text-model-q4_0.gguf
+   wget -O moondream2-mmproj-f16.gguf https://huggingface.co/moondream/moondream2-gguf/resolve/main/moondream2-mmproj-f16.gguf
    cd ..
    ```
 4. **백엔드 설치 (필수):** 컨테이너 내부에 Vulkan 가속 연산을 담당할 `llama-cpp` 백엔드를 직접 설치합니다:
@@ -130,7 +136,13 @@ Ensure the Intel UHD Graphics are passed through from the Proxmox Host (`root@pv
 3. **Download Model:** Download the GGUF model into the `./models` folder:
    ```bash
    cd models
+   # Qwen-1.5b Text Model
    wget -O qwen2.5-1.5b-instruct.gguf https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf
+   # Qwen-3b Text Model (Required for HA_MCP)
+   wget -O qwen2.5-3b-instruct.gguf https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf
+   # Moondream2 Vision Model (Required for Matter QR)
+   wget -O moondream2-text-model-q4_0.gguf https://huggingface.co/moondream/moondream2-gguf/resolve/main/moondream2-text-model-q4_0.gguf
+   wget -O moondream2-mmproj-f16.gguf https://huggingface.co/moondream/moondream2-gguf/resolve/main/moondream2-mmproj-f16.gguf
    cd ..
    ```
 4. **Install Backend (CRITICAL):** Manually install the `llama-cpp` backend inside the container:
