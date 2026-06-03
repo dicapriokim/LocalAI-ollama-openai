@@ -1,6 +1,7 @@
 # 🖥️ SuperLLM LXC 신규 구축 및 Ollama 설정 가이드 (Ubuntu 24.04 LTS)
 
 본 문서는 새로운 Proxmox VE 9.x 호스트(`<PVE_HOST_IP>`, `<PVE_NODE_NAME>`) 위에 새로운 LXC 컨테이너를 직접 생성하고, Ollama와 필수 AI 모델(`qwen2.5:3b`, `moondream`)을 처음부터 완벽하게 설치 및 설정하는 단계별 설명서입니다.
+
 [영문 가이드는 아래로 스크롤하세요. / Scroll down for the English guide.]
 ---
 
