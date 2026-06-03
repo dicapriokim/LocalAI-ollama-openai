@@ -42,35 +42,8 @@ An optimized configuration and guide for deploying **LocalAI** with **Intel iGPU
 
 ### 3. 설치 및 실행 절차
 
-1. 저장소를 클론하고 디렉토리로 이동합니다:
-   ```bash
-   git clone https://github.com/dicapriokim/LocalAI-miniPC.git
-   cd LocalAI-miniPC/localai
-   ```
-2. Docker 컨테이너를 실행합니다:
-   ```bash
-   docker compose up -d
-   ```
-3. **모델 다운로드:** `./models` 폴더 아래로 GGUF 모델 가중치를 다운로드합니다:
-   ```bash
-   cd models
-   # Qwen-1.5b Text Model
-   wget -O qwen2.5-1.5b-instruct.gguf https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf
-   # Qwen-3b Text Model (Required for HA_MCP)
-   wget -O qwen2.5-3b-instruct.gguf https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf
-   # Moondream2 Vision Model (Required for Matter QR)
-   wget -O moondream2-text-model-f16.gguf https://huggingface.co/moondream/moondream2-gguf/resolve/main/moondream2-text-model-f16.gguf
-   wget -O moondream2-mmproj-f16.gguf https://huggingface.co/moondream/moondream2-gguf/resolve/main/moondream2-mmproj-f16.gguf
-   cd ..
-   ```
-4. **백엔드 설치 (필수):** 컨테이너 내부에 Vulkan 가속 연산을 담당할 `llama-cpp` 백엔드를 직접 설치합니다:
-   ```bash
-   docker exec -it local-ai /local-ai backends install llama-cpp
-   ```
-5. **서비스 재시작:** 새로 설치된 백엔드 구동 바이너리를 로드할 수 있도록 서비스를 재시작합니다:
-   ```bash
-   docker compose restart
-   ```
+이 저장소는 기존 LocalAI Docker 기반에서 **Ollama 단독 구동 체제**로 일원화 및 최적화되었습니다.
+LXC 컨테이너 환경에서 Ollama를 설치하고 iGPU 가속을 적용하는 상세한 절차는 본 저장소의 [SuperLLM LXC 신규 구축 가이드](file:///d:/Antigravity/localai-server/superllm_lxc_setup_guide.md)를 참고해 주십시오.
 
 ---
 
@@ -79,7 +52,6 @@ An optimized configuration and guide for deploying **LocalAI** with **Intel iGPU
 LXC 내부 혹은 동등 네트워크 환경의 기기에서 아래 curl 명령을 통해 정상적인 한글 챗 완성 응답이 출력되는지 확인합니다:
 
 ```bash
-# 1. 순정 Ollama API를 직접 사용하는 경우 (기본 포트: 11434)
 curl -X POST http://localhost:11434/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
@@ -87,18 +59,6 @@ curl -X POST http://localhost:11434/v1/chat/completions \
     "messages": [
       {"role": "system", "content": "너는 스마트홈 전문가야. 친절하고 간결하게 답변해줘."},
       {"role": "user", "content": "인텔 N150 미니 PC에서 너를 구동하는 데 성공했어! 축하 한마디 해줄래?"}
-    ],
-    "temperature": 0.7
-  }'
-
-# 2. LocalAI Docker 컨테이너를 구동하여 사용하는 경우 (기본 포트: 8080)
-curl -X POST http://localhost:8080/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "qwen-1.5b",
-    "messages": [
-      {"role": "system", "content": "너는 스마트홈 전문가야. 친절하고 간결하게 답변해줘."},
-      {"role": "user", "content": "인텔 N95 미니 PC에서 너를 구동하는 데 성공했어! 축하 한마디 해줄래?"}
     ],
     "temperature": 0.7
   }'
@@ -114,9 +74,8 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 
 ---
 
-### 6. 네트워크 최적화 (동적 IP 디스커버리 및 11434 포트 대응)
-* **동적 IP 디스커버리:** 미니 PC 환경에서 DHCP 할당에 의해 LocalAI/Ollama 서버의 IP가 변경되더라도, 에이전트 서비스가 네트워크 스캔(예: `nmap` 또는 포트 탐색) 또는 mDNS(`superllm.local`)를 통해 자동으로 실시간 활성 서버 IP를 찾아 바인딩하는 기법을 권장합니다.
-* **Ollama 호환 포트 (11434) 대응:** 기존 Ollama 연동 프로젝트가 `http://<서버_IP>:11434` 포트를 하드코딩하여 호출 중인 경우, LocalAI Docker Compose의 포트 포워딩을 `11434:8080`으로 매핑하거나, 호스트 시스템 단에서 포트 리다이렉션을 설정하여 API 변경 없이 매끄럽게 통신을 이식할 수 있습니다.
+### 6. 네트워크 최적화 (동적 IP 디스커버리)
+* **동적 IP 디스커버리:** 미니 PC 환경에서 DHCP 할당에 의해 Ollama 서버의 IP가 변경되더라도, 에이전트 서비스가 네트워크 스캔 또는 mDNS(`superllm.local`)를 통해 자동으로 실시간 활성 서버 IP를 찾아 바인딩하는 기법을 권장합니다.
 
 ---
 ---
@@ -157,35 +116,8 @@ Ensure the Intel UHD Graphics are passed through from the Proxmox Host (`root@pv
 
 ### 3. Installation & Run
 
-1. Clone the repository and navigate to the directory:
-   ```bash
-   git clone https://github.com/dicapriokim/LocalAI-miniPC.git
-   cd LocalAI-miniPC/localai
-   ```
-2. Launch the LocalAI Docker container:
-   ```bash
-   docker compose up -d
-   ```
-3. **Download Model:** Download the GGUF model into the `./models` folder:
-   ```bash
-   cd models
-   # Qwen-1.5b Text Model
-   wget -O qwen2.5-1.5b-instruct.gguf https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf
-   # Qwen-3b Text Model (Required for HA_MCP)
-   wget -O qwen2.5-3b-instruct.gguf https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf
-   # Moondream2 Vision Model (Required for Matter QR)
-   wget -O moondream2-text-model-f16.gguf https://huggingface.co/moondream/moondream2-gguf/resolve/main/moondream2-text-model-f16.gguf
-   wget -O moondream2-mmproj-f16.gguf https://huggingface.co/moondream/moondream2-gguf/resolve/main/moondream2-mmproj-f16.gguf
-   cd ..
-   ```
-4. **Install Backend (CRITICAL):** Manually install the `llama-cpp` backend inside the container:
-   ```bash
-   docker exec -it local-ai /local-ai backends install llama-cpp
-   ```
-5. **Restart Container:** Restart the container to register the newly installed backend:
-   ```bash
-   docker compose restart
-   ```
+This repository has been optimized to exclusively use the **Ollama standalone engine** instead of the legacy LocalAI Docker setup.
+For detailed instructions on installing Ollama and applying iGPU acceleration within an LXC container, please refer to the [SuperLLM LXC Setup Guide](file:///d:/Antigravity/localai-server/superllm_lxc_setup_guide.md).
 
 ---
 
@@ -194,23 +126,10 @@ Ensure the Intel UHD Graphics are passed through from the Proxmox Host (`root@pv
 Test the completion API using `curl` inside the LXC container or from your local machine:
 
 ```bash
-# 1. Pure Ollama API (Default Port: 11434)
 curl -X POST http://localhost:11434/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "qwen2.5:3b",
-    "messages": [
-      {"role": "system", "content": "You are a smart home assistant. Answer shortly."},
-      {"role": "user", "content": "Hello! Introduce yourself."}
-    ],
-    "temperature": 0.7
-  }'
-
-# 2. LocalAI Docker Container (Default Port: 8080)
-curl -X POST http://localhost:8080/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "qwen-1.5b",
     "messages": [
       {"role": "system", "content": "You are a smart home assistant. Answer shortly."},
       {"role": "user", "content": "Hello! Introduce yourself."}
@@ -229,6 +148,5 @@ This repository includes specialized guides to help you optimize low-power AI in
 
 ---
 
-### 6. Network Optimization (Dynamic IP Discovery & Port 11434 Compatibility)
-* **Dynamic IP Discovery:** Since local mini-PC IPs can change due to DHCP, it is recommended to implement mDNS (`superllm.local`) or active network discovery (e.g., scanning ports) in agent codes to dynamically resolve the server IP.
-* **Ollama Port 11434 Compatibility:** For existing integrations expecting Ollama on port `11434`, you can map LocalAI's external port to `11434` (e.g., `11434:8080` in Docker Compose) or use host-level port forwarding to ensure seamless API transition.
+### 6. Network Optimization (Dynamic IP Discovery)
+* **Dynamic IP Discovery:** Since local mini-PC IPs can change due to DHCP, it is recommended to implement mDNS (`superllm.local`) or active network discovery in agent codes to dynamically resolve the Ollama server IP.
