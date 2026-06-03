@@ -6,6 +6,6 @@ gpu_layers: 15
 mmap: true
 
 parameters:
-  model: moondream2-text-model-q4_0.gguf
+  model: moondream2-text-model-f16.gguf
   mmproj: moondream2-mmproj-f16.gguf
   temperature: 0.1
