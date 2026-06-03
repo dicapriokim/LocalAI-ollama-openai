@@ -249,3 +249,254 @@ systemctl restart ollama
 ```
 재기동 후 `journalctl -u ollama --no-pager -n 50` 을 쳐서 `total_vram`이 내장 그래픽 메모리 용량으로 정상 표시되며 하드웨어 가속이 활성화되었는지 다시 체크합니다.
 
+---
+---
+
+## English Guide
+
+# 🖥️ SuperLLM LXC Setup & Ollama Configuration Guide (Ubuntu 24.04 LTS)
+
+This document provides a step-by-step guide to creating a new LXC container on a new Proxmox VE 9.x host (`<PVE_HOST_IP>`, `<PVE_NODE_NAME>`), and perfectly installing and configuring Ollama with essential AI models (`qwen2.5:3b`, `moondream`) from scratch.
+
+---
+
+## 🛠️ [Step 1] Create a New LXC Container in Proxmox VE
+
+### 1. Download Ubuntu 24.04 Template
+1. Open a web browser and log in to your PVE management page (`https://<PVE_HOST_IP>:8006`).
+2. In the left navigation tree, click on your **`<PVE_NODE_NAME>` node** ➔ **`local` (or local-lvm) storage**.
+3. Select the **`CT Templates`** menu and click the **`Templates`** button.
+4. Search for `ubuntu`, select **`ubuntu-24.04-standard_..._amd64.tar.zst`**, and click **`Download`**. (Wait until finished)
+
+### 2. Run the LXC Creation Wizard
+Click the **`Create CT`** button at the top right of the web dashboard and proceed with the following settings:
+
+* **General**
+  * **Node**: `<PVE_NODE_NAME>`
+  * **CT ID**: Assign any empty ID (e.g., `100` or above)
+  * **Hostname**: `SuperLLM`
+  * **Password**: Set and confirm a root password
+  * **Unprivileged container**: **Uncheck** (Create as a privileged container to prevent Docker mounting permission issues)
+* **Template**
+  * **Storage**: Select where the template is stored
+  * **Template**: Choose the downloaded `ubuntu-24.04-standard`
+* **Root Disk**
+  * **Storage**: Select installation storage (e.g., `local-lvm`)
+  * **Disk size (GiB)**: **`20` to `30` GiB** recommended (for storing Ollama models)
+* **CPU**
+  * **Cores**: **`4`** (Allocate all 4 cores of the Intel N150 to optimize inference speed)
+* **Memory**
+  * **Memory (MiB)**: **`4096` to `8192` MiB** (At least 4GB, 8GB+ recommended)
+  * **Swap (MiB)**: `512` to `1024` MiB
+* **Network**
+  * **Bridge**: `vmbr0`
+  * **IPv4**: `Static`
+  * **IPv4/CIDR**: Enter **`<LXC_IP>/24`**
+  * **Gateway (IPv4)**: `<GATEWAY_IP>`
+* **DNS**
+  * Use host settings
+* **Confirm**
+  * Review the settings and click **`Finish`** to create the container.
+
+### 3. Essential Settings for Docker (Important)
+For Docker (e.g., Mail-Automator) to run normally inside LXC, enable the following features immediately after creation:
+1. Click the created **`SuperLLM` (LXC Container)** in the left menu.
+2. Double-click the **`Features`** menu under **`Options`**.
+3. Check both **`keyctl`** and **`nesting`**, then click **`OK`**.
+   *(※ If omitted, the Docker daemon will fail to initialize inside the LXC.)*
+
+### 4. Intel iGPU Hardware Acceleration (GPU Pass-through) Settings (Recommended)
+To pass the integrated graphics (iGPU UHD Graphics) resources of the N150 into the container for Ollama acceleration:
+1. Log in to the Proxmox VE host terminal (`root@<PVE_NODE_NAME>`).
+2. Edit the container's configuration file (e.g., if VMID is `103`, `/etc/pve/lxc/103.conf`):
+   ```bash
+   nano /etc/pve/lxc/<CT_ID>.conf
+   ```
+3. Append the following device mapping and security profiles at the bottom:
+   ```text
+   unprivileged: 0
+   lxc.apparmor.profile: unconfined
+   lxc.cgroup2.devices.allow: c 226:0 rwm
+   lxc.cgroup2.devices.allow: c 226:128 rwm
+   lxc.mount.entry: /dev/dri/card0 dev/dri/card0 none bind,optional,create=file
+   lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file
+   ```
+4. **Reboot** the LXC container. The container will now perfectly recognize the graphic device (`/dev/dri/renderD128`), allowing Ollama to use hardware GPU acceleration.
+
+---
+
+## ⚙️ [Step 2] Basic Packages and Dependencies Setup
+
+Once the LXC is created, click **`Start`** and access the root account via the **`Console`** or SSH to execute the following commands in order:
+
+```bash
+# 1. Update and upgrade packages
+apt update && apt upgrade -y
+
+# 2. Install essential build/network utilities and SSH server (zstd is required by Ollama)
+apt install -y curl zstd net-tools git avahi-daemon openssh-server
+
+# 3. Allow root SSH login and password authentication
+sed -i 's/#PermitRootLogin.*/PermitRootLogin yes/g' /etc/ssh/sshd_config
+sed -i 's/#PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+systemctl restart sshd
+systemctl enable ssh
+
+# 4. Install and enable Docker Engine (for Mail-Automator)
+curl -fsSL https://get.docker.com | sh
+systemctl enable --now docker
+```
+
+* `avahi-daemon` is a flexible mDNS utility that automatically binds the host to `superllm.local` even if the IP address changes dynamically.
+
+---
+
+## 🦙 [Step 3] Install Ollama and Set External Binding (0.0.0.0)
+
+By default, Ollama only listens on localhost (`127.0.0.1`). To communicate with other projects, you must reconfigure the environment variable to listen on **all IP ranges (`0.0.0.0`)**.
+
+### 1. One-Click Ollama Installation
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+### 2. Override OLLAMA_HOST Environment Variable
+Override the systemd service unit to allow external queries (from Home Assistant, Mail-Automator, etc.) directly to port `11434`.
+
+```bash
+# Create drop-in directory for systemd service
+mkdir -p /etc/systemd/system/ollama.service.d
+
+# Inject override configuration
+cat > /etc/systemd/system/ollama.service.d/override.conf << 'EOF'
+[Service]
+Environment="OLLAMA_HOST=0.0.0.0"
+Environment="OLLAMA_IGPU_ENABLE=1"
+EOF
+
+# Reload daemon and restart service
+systemctl daemon-reload
+systemctl restart ollama
+```
+
+### 3. Verify Binding Status
+```bash
+# Check if port 11434 is listening on *:11434 or 0.0.0.0:11434
+netstat -tlnp | grep 11434
+```
+
+---
+
+## 📥 [Step 4] Download Essential AI Models (qwen2.5:3b & moondream)
+
+> [!NOTE]
+> **About Quantization**: 
+> Downloading an Ollama model without a specific tag automatically pulls a **lightweight model with 4-bit quantization (Q4_K_M)** by default. This minimizes performance degradation while drastically reducing storage (approx. 1.7~1.9GB) and CPU load, ensuring optimal speed and accuracy on low-power CPUs like the Intel N150/N95.
+
+Run the following commands to safely pull the text and vision models:
+
+```bash
+# 1. Pull lightweight text model for Korean QA and MCP tool logic (approx. 1.9 GB)
+ollama pull qwen2.5:3b
+
+# 2. Pull multimodal vision model for QR OCR and image analysis (approx. 1.7 GB)
+ollama pull moondream
+
+# 3. Verify downloaded models
+ollama list
+```
+
+> [!TIP]
+> **Why qwen2.5:3b instead of 1.5b?**
+> * **Intelligence Gap**: The `1.5b` model lacks the parameters needed for reliable smart home control (tool/parameter judgment) and often distorts Korean context.
+> * **Hardware Capability**: Despite its 6W TDP, the Intel N150's x86 4-core Gracemont CPU is powerful enough to smoothly run the `qwen2.5:3b` model.
+> * **Resource Optimization**: Unifying around the single smarter `qwen2.5:3b` model monopolizes Ollama RAM caching, providing better system responsiveness than running multiple smaller models simultaneously.
+
+---
+
+## 🧪 [Step 5] Final API Communication Test
+
+Verify that Ollama's OpenAI-compatible chat completions API returns proper JSON by sending this curl command:
+
+```bash
+curl http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen2.5:3b",
+    "messages": [
+      {"role": "user", "content": "Hello! Answer shortly in one word."}
+    ],
+    "max_tokens": 10
+  }'
+```
+
+If it returns a valid JSON response like `{"choices": [{"message": {"content": "..."}}]}`, the AI integration server setup is complete!
+
+---
+
+## 🏎️ [Step 6] Verifying iGPU Hardware Acceleration Performance
+
+How to check if the Intel N150 integrated graphics passed through to LXC are actively accelerating inference.
+
+### 1. Check GPU Device Recognition in LXC
+Run this command in the container shell:
+```bash
+ls -la /dev/dri
+```
+* **Expected Result**: `card0` and `renderD128` device files should be visible.
+
+### 2. Check Ollama GPU Detection Logs
+Verify if Ollama successfully acquired the graphics driver:
+```bash
+journalctl -u ollama --no-pager -n 50
+```
+* **Expected Result**: Logs should contain mentions of **`Vulkan`**, **`UHD Graphics`**, or **`initialization`** successes. `CPU-only` or `fallback` indicates an issue.
+
+### 3. Real-time GPU Load Monitoring
+Use Intel's GPU monitoring tool (`intel_gpu_top`) to observe load spikes during inference.
+
+```bash
+# 1. Install tool
+apt install -y intel-gpu-tools
+
+# 2. Run monitor
+intel_gpu_top
+```
+* **Test**: Send a heavy prompt in another terminal:
+  ```bash
+  curl http://localhost:11434/v1/chat/completions \
+    -H "Content-Type: application/json" \
+    -d '{
+      "model": "qwen2.5:3b",
+      "messages": [{"role": "user", "content": "Explain the birth of the universe and black holes in detail."}]
+    }'
+  ```
+* **Success**: If the **`Render/3D` engine load spikes to 50%-100%** while generating the answer, iGPU acceleration is fully active.
+
+### 4. Inference Speed (Tokens Per Second) Comparison
+Check the timing logs via `journalctl -u ollama`:
+* **CPU-only mode**: Approx. **`5~8 tokens per second`**.
+* **iGPU Acceleration mode**: Approx. **`12~18+ tokens per second`** (A 1.5x to 2x+ speedup).
+
+### 5. Troubleshooting: Fallback to CPU / VRAM "0 B"
+If Ollama fails to load the iGPU and falls back to CPU, execute these fixes inside the LXC container immediately:
+
+#### Fix 1: Open Device File Permissions
+The `ollama` user might lack permission to access the passed-through driver files:
+```bash
+chmod -R 777 /dev/dri
+```
+
+#### Fix 2: Install Missing Intel GPU & Vulkan/Mesa Drivers
+The container might lack the necessary hardware acceleration runtime libraries:
+```bash
+apt update
+apt install -y mesa-vulkan-drivers va-driver-all ocl-icd-libopencl1 intel-opencl-icd clinfo
+```
+
+#### Fix 3: Restart Ollama Service
+Apply the changes by restarting the daemon:
+```bash
+systemctl restart ollama
+```
+Check `journalctl -u ollama --no-pager -n 50` again to ensure `total_vram` displays the iGPU memory capacity.
