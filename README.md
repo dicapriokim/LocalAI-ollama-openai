@@ -19,35 +19,20 @@ An optimized configuration and guide for deploying **LocalAI** with **Intel iGPU
 
 ---
 
-### 2. 인프라 설정 (Proxmox 호스트 및 LXC)
-
-인텔 UHD 내장 그래픽 자원을 Proxmox 호스트(`root@pve`)에서 LXC 컨테이너(`SuperLLM`) 내부로 패스스루해야 합니다.
-
-1. Proxmox 호스트 OS 터미널에서 LXC 설정 파일을 편집합니다:
-   ```bash
-   nano /etc/pve/lxc/<컨테이너VMID>.conf
-   ```
-2. 파일 맨 하단에 다음 설정을 추가하고 저장합니다:
-   ```text
-   unprivileged: 0
-   lxc.apparmor.profile: unconfined
-   lxc.cgroup2.devices.allow: c 226:0 rwm
-   lxc.cgroup2.devices.allow: c 226:128 rwm
-   lxc.mount.entry: /dev/dri/card0 dev/dri/card0 none bind,optional,create=file
-   lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file
-   ```
-3. Proxmox Web GUI의 **LXC 옵션(Options) -> Features** 메뉴에서 **Nesting**을 활성화한 뒤 컨테이너를 재부팅합니다.
-
----
-
-### 3. 설치 및 실행 절차
+### 2. ⚠️ [필수] 신규 유저 올인원 구축 가이드
 
 이 저장소는 기존 LocalAI Docker 기반에서 **Ollama 단독 구동 체제**로 일원화 및 최적화되었습니다.
-LXC 컨테이너 환경에서 Ollama를 설치하고 iGPU 가속을 적용하는 상세한 절차는 본 저장소의 [SuperLLM LXC 신규 구축 가이드](file:///d:/Antigravity/localai-server/superllm_lxc_setup_guide.md)를 참고해 주십시오.
+LXC 환경에서 처음 구축을 시작하는 분들은 헤매지 마시고 **가장 먼저 아래의 올인원 구축 가이드를 순서대로 진행**해 주시기 바랍니다.
+
+> [!IMPORTANT]
+> Proxmox LXC 템플릿 생성부터 GPU 패스스루 설정, Ollama 엔진 설치 및 가속 최적화까지 모든 과정이 A to Z로 담겨 있습니다.
+> 👉 **[🖥️ SuperLLM LXC 신규 구축 가이드 문서 열기](./superllm_lxc_setup_guide.md)**
+
+(위 가이드를 모두 마치신 후, 아래의 3번 API 호출 테스트로 넘어오시면 됩니다.)
 
 ---
 
-### 4. 작동 검증 API 호출 테스트
+### 3. 작동 검증 API 호출 테스트
 
 LXC 내부 혹은 동등 네트워크 환경의 기기에서 아래 curl 명령을 통해 정상적인 한글 챗 완성 응답이 출력되는지 확인합니다:
 
@@ -66,7 +51,7 @@ curl -X POST http://localhost:11434/v1/chat/completions \
 
 ---
 
-### 5. 추가 기술 문서 및 스킬북 (Reference Skills)
+### 4. 추가 기술 문서 및 스킬북 (Reference Skills)
 본 저장소에는 미니 PC 기반의 AI 인프라 최적화를 돕기 위한 상세 스킬북 및 구축 문서들이 포함되어 있습니다:
 * [Intel iGPU Vulkan 가속 설정 스킬북](file:///d:/Antigravity/localai-server/skills/igpu_vulkan_acceleration.md): Intel UHD Graphics 기반 하드웨어 가속 컴파일 및 Docker 상세 설정 가이드.
 * [Ollama 기반 마이그레이션 스킬북](file:///d:/Antigravity/localai-server/skills/localai_migration.md): Ollama API 규격을 OpenAI 호환 API 규격으로 소스코드 수준에서 마이그레이션하는 개발 스킬 가이드.
@@ -74,7 +59,7 @@ curl -X POST http://localhost:11434/v1/chat/completions \
 
 ---
 
-### 6. 네트워크 최적화 (동적 IP 디스커버리)
+### 5. 네트워크 최적화 (동적 IP 디스커버리)
 * **동적 IP 디스커버리:** 미니 PC 환경에서 DHCP 할당에 의해 Ollama 서버의 IP가 변경되더라도, 에이전트 서비스가 네트워크 스캔 또는 mDNS(`superllm.local`)를 통해 자동으로 실시간 활성 서버 IP를 찾아 바인딩하는 기법을 권장합니다.
 
 ---
@@ -93,35 +78,20 @@ curl -X POST http://localhost:11434/v1/chat/completions \
 
 ---
 
-### 2. Infrastructure Setup (Proxmox Host & LXC)
-
-Ensure the Intel UHD Graphics are passed through from the Proxmox Host (`root@pve`) to the LXC container (`SuperLLM`).
-
-1. Edit your LXC configuration file on your Proxmox host:
-   ```bash
-   nano /etc/pve/lxc/<CONTAINER_VMID>.conf
-   ```
-2. Append the following parameters at the end of the file:
-   ```text
-   unprivileged: 0
-   lxc.apparmor.profile: unconfined
-   lxc.cgroup2.devices.allow: c 226:0 rwm
-   lxc.cgroup2.devices.allow: c 226:128 rwm
-   lxc.mount.entry: /dev/dri/card0 dev/dri/card0 none bind,optional,create=file
-   lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file
-   ```
-3. Enable **Nesting** under **LXC Options -> Features** in the Proxmox Web GUI, and reboot the LXC container.
-
----
-
-### 3. Installation & Run
+### 2. ⚠️ [MUST READ] All-in-One Setup Guide
 
 This repository has been optimized to exclusively use the **Ollama standalone engine** instead of the legacy LocalAI Docker setup.
-For detailed instructions on installing Ollama and applying iGPU acceleration within an LXC container, please refer to the [SuperLLM LXC Setup Guide](file:///d:/Antigravity/localai-server/superllm_lxc_setup_guide.md).
+If you are starting fresh, please follow the comprehensive setup guide below before proceeding to any other steps.
+
+> [!IMPORTANT]
+> The guide covers everything from creating a Proxmox LXC template to GPU pass-through, Ollama installation, and iGPU acceleration optimization.
+> 👉 **[🖥️ Open SuperLLM LXC Setup Guide](./superllm_lxc_setup_guide.md)**
+
+(Once you have completed the guide, proceed to step 3 below for API verification.)
 
 ---
 
-### 4. API Verification
+### 3. API Verification
 
 Test the completion API using `curl` inside the LXC container or from your local machine:
 
@@ -140,7 +110,7 @@ curl -X POST http://localhost:11434/v1/chat/completions \
 
 ---
 
-### 5. Reference Skill Books & Setup Guides
+### 4. Reference Skill Books & Setup Guides
 This repository includes specialized guides to help you optimize low-power AI infrastructure:
 * [Intel iGPU Vulkan Acceleration Skill Book](file:///d:/Antigravity/localai-server/skills/igpu_vulkan_acceleration.md): A technical guide for GPU pass-through on PVE LXC and compiling Vulkan backends.
 * [Ollama to LocalAI Migration Skill Book](file:///d:/Antigravity/localai-server/skills/localai_migration.md): Explains code-level migrations from Ollama APIs to OpenAI-compatible formats.
@@ -148,5 +118,5 @@ This repository includes specialized guides to help you optimize low-power AI in
 
 ---
 
-### 6. Network Optimization (Dynamic IP Discovery)
+### 5. Network Optimization (Dynamic IP Discovery)
 * **Dynamic IP Discovery:** Since local mini-PC IPs can change due to DHCP, it is recommended to implement mDNS (`superllm.local`) or active network discovery in agent codes to dynamically resolve the Ollama server IP.
