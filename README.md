@@ -79,6 +79,19 @@ An optimized configuration and guide for deploying **LocalAI** with **Intel iGPU
 LXC 내부 혹은 동등 네트워크 환경의 기기에서 아래 curl 명령을 통해 정상적인 한글 챗 완성 응답이 출력되는지 확인합니다:
 
 ```bash
+# 1. 순정 Ollama API를 직접 사용하는 경우 (기본 포트: 11434)
+curl -X POST http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen2.5:3b",
+    "messages": [
+      {"role": "system", "content": "너는 스마트홈 전문가야. 친절하고 간결하게 답변해줘."},
+      {"role": "user", "content": "인텔 N150 미니 PC에서 너를 구동하는 데 성공했어! 축하 한마디 해줄래?"}
+    ],
+    "temperature": 0.7
+  }'
+
+# 2. LocalAI Docker 컨테이너를 구동하여 사용하는 경우 (기본 포트: 8080)
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
@@ -181,6 +194,19 @@ Ensure the Intel UHD Graphics are passed through from the Proxmox Host (`root@pv
 Test the completion API using `curl` inside the LXC container or from your local machine:
 
 ```bash
+# 1. Pure Ollama API (Default Port: 11434)
+curl -X POST http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen2.5:3b",
+    "messages": [
+      {"role": "system", "content": "You are a smart home assistant. Answer shortly."},
+      {"role": "user", "content": "Hello! Introduce yourself."}
+    ],
+    "temperature": 0.7
+  }'
+
+# 2. LocalAI Docker Container (Default Port: 8080)
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
