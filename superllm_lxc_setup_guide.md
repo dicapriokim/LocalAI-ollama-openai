@@ -225,13 +225,20 @@ Ollama의 추론 로그 타이밍 결과는 `journalctl -u ollama` 또는 Ollama
 * **iGPU 가속 모드**: 대략 **`12~18 tokens per second` 이상**으로 속도가 최소 **1.5배~2배 이상 향상**되어 문장이 훨씬 빠르게 타이핑되듯이 완성됩니다.
 
 ### 5. 문제 해결 (트러블슈팅): 여전히 CPU로만 장치를 인식하고 VRAM이 "0 B"일 때
-패스스루 설정을 했음에도 Ollama가 내장 그래픽 자원을 로드하지 못하고 CPU로 폴백할 경우, 다음 두 가지 조치 명령을 LXC 컨테이너 내부 터미널에서 즉시 실행합니다.
+패스스루 설정을 했음에도 Ollama가 내장 그래픽 자원을 로드하지 못하고 CPU로 폴백할 경우, 다음 조치 명령을 LXC 컨테이너 내부 터미널에서 즉시 실행합니다.
 
-#### 조치 1: 컨테이너 내부의 디바이스 파일 권한(Permission) 개방
-LXC 내부의 `ollama` 사용자가 호스트에서 넘어온 디바이스 드라이버 파일에 접근할 권한이 막혀있어 감지하지 못하는 현상입니다. 다음 명령으로 권한을 해제합니다:
+#### 조치 1: 컨테이너 내부의 디바이스 파일 권한(Permission) 개방 및 그룹 소속 추가
+LXC 내부의 `ollama` 사용자가 호스트에서 넘어온 디바이스 드라이버 파일에 접근할 권한이 막혀있어 감지하지 못하는 현상입니다. 
+
+특히 `renderD128`의 그룹 권한이 `video`가 아닌 `clock` 등으로 잡혀 있는 경우, 다음 명령으로 권한 개방 및 그룹 추가를 진행합니다:
 ```bash
-# LXC 컨테이너 내부에서 실행
-chmod -R 777 /dev/dri
+# 1. 임시로 그래픽 장치 노드 전체 읽기/쓰기 권한 부여
+chmod 666 /dev/dri/card0
+chmod 666 /dev/dri/renderD128
+
+# 2. ollama 서비스 구동 계정에 그래픽 장치 관련 그룹 권한 강제 추가
+usermod -aG video ollama
+usermod -aG clock ollama
 ```
 
 #### 조치 2: 컨테이너 내부 인텔 GPU 및 Vulkan/Mesa 드라이버 패키지 누락 해결
@@ -242,12 +249,12 @@ apt update
 apt install -y mesa-vulkan-drivers va-driver-all ocl-icd-libopencl1 intel-opencl-icd clinfo
 ```
 
-#### 조치 3: Ollama 서비스 재시작
+#### 조치 3: Ollama 서비스 재시작 및 동작 검증
 위 조치들을 취한 후, 변경사항을 적용하기 위해 Ollama 엔진 데몬을 재기동합니다:
 ```bash
 systemctl restart ollama
 ```
-재기동 후 `journalctl -u ollama --no-pager -n 50` 을 쳐서 `total_vram`이 내장 그래픽 메모리 용량으로 정상 표시되며 하드웨어 가속이 활성화되었는지 다시 체크합니다.
+재기동 후 `ollama ps`를 쳐서 **`PROCESSOR`가 `100% GPU`**로 정상 표시되며 하드웨어 가속이 활성화되었는지 다시 체크합니다.
 
 ---
 ---
