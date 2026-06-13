@@ -53,9 +53,9 @@ curl -X POST http://localhost:11434/v1/chat/completions \
 
 ### 4. 추가 기술 문서 및 스킬북 (Reference Skills)
 본 저장소에는 미니 PC 기반의 AI 인프라 최적화를 돕기 위한 상세 스킬북 및 구축 문서들이 포함되어 있습니다:
-* [Intel iGPU Vulkan 가속 설정 스킬북](file:///d:/Antigravity/localai-server/skills/igpu_vulkan_acceleration.md): Intel UHD Graphics 기반 하드웨어 가속 컴파일 및 Docker 상세 설정 가이드.
-* [Ollama 기반 마이그레이션 스킬북](file:///d:/Antigravity/localai-server/skills/localai_migration.md): Ollama API 규격을 OpenAI 호환 API 규격으로 소스코드 수준에서 마이그레이션하는 개발 스킬 가이드.
-* [SuperLLM LXC 신규 구축 가이드](file:///d:/Antigravity/localai-server/superllm_lxc_setup_guide.md): Proxmox 9.x 환경에서 우분투 24.04 컨테이너를 직접 구축하고 GPU 패스스루 권한 및 Ollama(11434 포트 리슨)를 설치하는 통합 매뉴얼.
+* [Intel iGPU Vulkan 가속 설정 스킬북](./.agent/docs/skills/igpu_vulkan_acceleration.md): Intel UHD Graphics 기반 하드웨어 가속 컴파일 및 Docker 상세 설정 가이드. (로컬 격리 보관)
+* [Ollama 기반 마이그레이션 스킬북](./.agent/docs/skills/localai_migration.md): Ollama API 규격을 OpenAI 호환 API 규격으로 소스코드 수준에서 마이그레이션하는 개발 스킬 가이드. (로컬 격리 보관)
+* [SuperLLM LXC 신규 구축 가이드](./superllm_lxc_setup_guide.md): Proxmox 9.x 환경에서 우분투 24.04 컨테이너를 직접 구축하고 GPU 패스스루 권한 및 Ollama(11434 포트 리슨)를 설치하는 통합 매뉴얼.
 
 ---
 
@@ -112,9 +112,9 @@ curl -X POST http://localhost:11434/v1/chat/completions \
 
 ### 4. Reference Skill Books & Setup Guides
 This repository includes specialized guides to help you optimize low-power AI infrastructure:
-* [Intel iGPU Vulkan Acceleration Skill Book](file:///d:/Antigravity/localai-server/skills/igpu_vulkan_acceleration.md): A technical guide for GPU pass-through on PVE LXC and compiling Vulkan backends.
-* [Ollama to LocalAI Migration Skill Book](file:///d:/Antigravity/localai-server/skills/localai_migration.md): Explains code-level migrations from Ollama APIs to OpenAI-compatible formats.
-* [SuperLLM LXC Setup Guide](file:///d:/Antigravity/localai-server/superllm_lxc_setup_guide.md): Step-by-step instructions to create an Ubuntu 24.04 LXC container on PVE, pass through iGPU, and configure Ollama with standard port mappings (`11434`).
+* [Intel iGPU Vulkan Acceleration Skill Book](./.agent/docs/skills/igpu_vulkan_acceleration.md): A technical guide for GPU pass-through on PVE LXC and compiling Vulkan backends. (Locally archived)
+* [Ollama to LocalAI Migration Skill Book](./.agent/docs/skills/localai_migration.md): Explains code-level migrations from Ollama APIs to OpenAI-compatible formats. (Locally archived)
+* [SuperLLM LXC Setup Guide](./superllm_lxc_setup_guide.md): Step-by-step instructions to create an Ubuntu 24.04 LXC container on PVE, pass through iGPU, and configure Ollama with standard port mappings (`11434`).
 
 ---
 

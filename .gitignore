@@ -6,3 +6,8 @@ localai/models/*.gguf
 .env
 localai/test.json
 
+# Agent & Developer Isolation Files
+.agent/
+troubleshooting_history.md
+skills/
+
